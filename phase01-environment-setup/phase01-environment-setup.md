@@ -49,6 +49,8 @@ VirtualBox Host (Windows — Ryzen 7 5700X, 32GB RAM)
 | Network Adapter 2 | Host-only — 192.168.56.101 / 255.255.255.0 |
 | OS User | Paulo |
 
+![VirtualBox Windows specs](screenshots/04-virtualbox-windows-specs.png)
+
 ### kali-linux-2026.1-virtualbox-amd64
 
 | Parameter | Value |
@@ -58,6 +60,8 @@ VirtualBox Host (Windows — Ryzen 7 5700X, 32GB RAM)
 | Disk | 80 GB (dynamic VDI) |
 | Network Adapter 1 | NAT — internet access |
 | Network Adapter 2 | Host-only — 192.168.56.102 / 255.255.255.0 |
+
+![VirtualBox Kali specs](screenshots/03-virtualbox-kali-specs.png)
 
 ---
 
@@ -87,6 +91,10 @@ PING 192.168.56.101 (192.168.56.101) 56(84) bytes of data.
 ```
 
 Latency ~0.6ms confirms a stable low-latency link suitable for forensic acquisition.
+
+![Ping test Kali to Windows](screenshots/01-ping-test-kali-to-windows.png)
+
+![Windows ipconfig Ethernet 2](screenshots/02-windows-ipconfig-ethernet2.png)
 
 ---
 
