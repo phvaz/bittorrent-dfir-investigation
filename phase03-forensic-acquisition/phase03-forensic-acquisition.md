@@ -4,6 +4,8 @@
 
 Create a forensically sound image of the Windows target disk, verify its integrity through cryptographic hashing, and document the full chain of custody. The resulting E01 image will be used as the primary evidence source for all subsequent analysis phases.
 
+> **Note:** This phase required two acquisition attempts. The first acquisition captured the wrong disk state due to VirtualBox snapshot architecture. The full troubleshooting process is documented below as it represents real-world forensic investigative reasoning.
+
 ---
 
 ## Environment
@@ -27,11 +29,9 @@ Create a forensically sound image of the Windows target disk, verify its integri
 
 ---
 
-## Procedure
+## Acquisition 01 — Initial Attempt (Incorrect)
 
 ### Step 1 — Convert VDI to raw image
-
-The VirtualBox `.vdi` format is not directly supported by `ewfacquire`. The disk was first converted to a raw image using `qemu-img`:
 
 ```bash
 mkdir -p ~/forensics/phase03
@@ -40,24 +40,20 @@ qemu-img convert -f vdi -O raw \
   ~/forensics/phase03/windows-target.raw
 ```
 
-The resulting raw image is a sparse file — logical size 60GB, physical size ~8.7GB. The difference represents unallocated disk space (zero blocks), which the filesystem stores implicitly without writing physical zeros.
+The resulting raw image appeared as a sparse file — logical size 60GB, physical size ~8.7GB.
 
-### Step 2 — Calculate SHA-256 hash of raw image
-
-Before any further processing, a SHA-256 hash was calculated over the raw image to document its state prior to E01 conversion:
+### Step 2 — SHA-256 hash of raw image
 
 ```bash
 sha256sum ~/forensics/phase03/windows-target.raw
 ```
 
-**SHA-256 (raw):**
+**SHA-256 (raw v1):**
 ```
 80f206ef92486901742c5c4f5a9a536d7e69b978a5ed64ba1dc0075c8f8fb08c
 ```
 
-This hash serves as an independent pre-acquisition integrity reference, separate from the MD5 generated internally by `ewfacquire`.
-
-### Step 3 — Acquire E01 image
+### Step 3 — Acquire E01
 
 ```bash
 ewfacquire \
@@ -71,133 +67,238 @@ ewfacquire \
   ~/forensics/phase03/windows-target.raw
 ```
 
-**Acquisition parameters:**
-
-| Parameter | Value |
-|---|---|
-| Case number | BitTorrent DFIR Investigation |
-| Description | Windows 10 DFIR Target VM |
-| Evidence number | 01 |
-| Examiner name | Paulo Vaz |
-| Notes | Windows 10 LTSC 21H2 VM - qBittorrent BitTorrent activity |
-| Media type | Fixed disk |
-| EWF format | EnCase 6 (.E01) |
-| Compression | deflate / fast |
-| Segment size | 1.4 GiB |
-| Bytes per sector | 512 |
-| Block size | 64 sectors |
-| Retries on read error | 2 |
-
-**Acquisition result:**
-
+**Result:**
 ```
 Acquiry completed at: Jun 22, 2026 17:52:39
-Written: 60 GiB (64424509628 bytes) in 3 minute(s) and 22 second(s)
-Speed: 304 MiB/s (318933215 bytes/second)
+Written: 60 GiB in 3 minute(s) and 22 second(s) with 304 MiB/s
 MD5 hash calculated over data: 41f3b630078af93662a45f37d3d6ee9b
 ewfacquire: SUCCESS
 ```
 
-The image was automatically segmented into four files due to the 1.4GiB segment size limit:
-
-| Segment | Size |
-|---|---|
-| windows-target.E01 | 1.5 GiB |
-| windows-target.E02 | 1.5 GiB |
-| windows-target.E03 | 1.5 GiB |
-| windows-target.E04 | 535 MiB |
-
 ### Step 4 — Verify E01 integrity
-
-```bash
-ewfverify ~/forensics/phase03/windows-target.E01
-```
-
-**Verification result:**
 
 ```
 Verify completed at: Jun 22, 2026 18:00:58
-Read: 60 GiB (64424509440 bytes) in 1 minute(s) and 59 second(s)
-Speed: 516 MiB/s (541382432 bytes/second)
 MD5 hash stored in file:        41f3b630078af93662a45f37d3d6ee9b
 MD5 hash calculated over data:  41f3b630078af93662a45f37d3d6ee9b
 ewfverify: SUCCESS
 ```
 
-MD5 hashes match — image integrity confirmed.
+### Screenshots — Acquisition 01
+
+![SHA-256 raw v1](screenshots/01-sha256-raw-image.png)
+![ewfacquire parameters](screenshots/02-ewfacquire-parameters.png)
+![ewfacquire success](screenshots/03-ewfacquire-progress.png)
+![ewfverify progress](screenshots/04-ewfverify-progress.png)
+![ewfverify success](screenshots/05-ewfverify-success.png)
+
+---
+
+## Troubleshooting — Wrong Disk State Acquired
+
+### Discovery
+
+During Phase 04 disk analysis, TSK found no qBittorrent artifacts anywhere on the acquired image:
+
+```bash
+fls -r -p -o 104448 ~/forensics/phase03/windows-target.raw | grep -i qbittorrent
+# (empty output)
+```
+
+No `.torrent` files, no qBittorrent installation, no AppData entries — despite the software having been installed and used to download a 755MB file.
+
+### Root Cause — VirtualBox Snapshot Architecture
+
+VirtualBox uses a **differential disk architecture** for snapshots. When a snapshot is taken, the base VDI is frozen at that exact state and all subsequent writes go to a new differential VDI stored in the `Snapshots/` folder. The base VDI is never modified again.
+
+The snapshot chain for this VM was:
+
+```
+windows-10-dfir-target.vdi  ← frozen at clean-install (Jun 18, 2026)
+         ↓
+{4b452df5...}.vdi  ← dependencies-installed
+         ↓
+{f7eadf86...}.vdi  ← guest-additions-fixed
+         ↓
+{7e38a98b...}.vdi  ← network-configured
+         ↓
+{d65e0302...}.vdi  ← wireshark-done
+         ↓
+{f8e3eb22...}.vdi  ← Estado Atual — qBittorrent + torrent download (15.7 GiB)
+```
+
+The first acquisition pointed to `windows-10-dfir-target.vdi` — the frozen base disk from before any software was installed. All actual evidence resided in the snapshot chain, specifically in `{f8e3eb22...}.vdi`.
+
+### Forensic Lesson — VM vs Physical Disk
+
+> **Important disclaimer:** This problem is specific to virtualized environments. In a physical disk investigation, a hardware write blocker guarantees the original evidence remains unmodified regardless of what operations are performed on the acquired copy. There is no equivalent of "snapshots" on a physical disk — the disk is always the single source of truth.
+>
+> In VM forensics, identifying and correctly handling snapshot chains is a critical skill. Acquiring only the base VDI without accounting for differential snapshots is a common mistake that results in an incomplete or incorrect evidence image.
+
+### Correct Approach (Lesson Learned)
+
+The forensically sound approach for VM snapshot chains would have been:
+
+1. Leave all files untouched
+2. Point `qemu-img` directly at the most recent snapshot VDI (`{f8e3eb22...}.vdi`) — `qemu-img` resolves the differential chain automatically
+3. Generate raw and E01 from that without modifying the original evidence
+
+### What Was Done Instead
+
+To simplify the workflow, VirtualBox snapshots were consolidated into the base VDI by deleting snapshots from oldest to newest. VirtualBox automatically merges each snapshot's changes into the next level during deletion.
+
+**Before consolidation:** `windows-10-dfir-target.vdi` = 9.2 GiB (frozen at clean-install)
+**After consolidation:** `windows-10-dfir-target.vdi` = ~21 GiB (full state with all activity)
+
+**Why this is problematic forensically:** Consolidating snapshots modifies the base VDI — the original evidence state is altered. In a real court case, this could be challenged.
+
+**What preserved the chain of custody:** Before consolidation, a full backup of the entire `windows-10-dfir-target/` folder — including all snapshot VDIs — was made to two separate storage devices (external HD and USB drive formatted as exFAT). The original snapshot chain is preserved and verifiable.
+
+### TSK Confirmation Before Second Acquisition
+
+After consolidation and raw conversion, TSK confirmed the correct artifacts were present before proceeding with the second acquisition:
+
+```bash
+fls -r -p -o 104448 ~/forensics/phase03/windows-target.raw | grep -i qbittorrent
+```
+
+Key artifacts confirmed:
+```
+d/d  Users/Paulo/AppData/Local/qBittorrent
+r/r  Users/Paulo/AppData/Local/qBittorrent/BT_backup/58846860f0a766f8a42b0bb214d8c713fdf1b167.torrent
+r/r  Users/Paulo/AppData/Local/qBittorrent/logs/qbittorrent.log
+r/r  Users/Paulo/AppData/Roaming/qBittorrent/qBittorrent.ini
+r/r  Users/Paulo/Downloads/qbittorrent_5.2.2_x64_setup.exe
+r/r  Program Files/qBittorrent/qbittorrent.exe
+r/r  Windows/Prefetch/QBITTORRENT.EXE-17EBDC32.pf
+```
+
+![TSK qBittorrent artifacts confirmed](screenshots/06-tsk-qbittorrent-artifacts-found.png)
+
+---
+
+## Acquisition 02 — Correct Image
+
+### Step 1 — Convert consolidated VDI to raw
+
+```bash
+qemu-img convert -f vdi -O raw \
+  /media/sf_windows-10-dfir-target/windows-10-dfir-target.vdi \
+  ~/forensics/phase03/windows-target.raw
+```
+
+Physical size: ~26 GiB (reflects actual data after snapshot consolidation)
+
+![Raw v2 created](screenshots/07-raw-v2-created.png)
+
+### Step 2 — SHA-256 hash of raw image v2
+
+```bash
+sha256sum ~/forensics/phase03/windows-target.raw
+```
+
+**SHA-256 (raw v2):**
+```
+dff2ba411365bbf36cf15306d036f2d24a0fff9bdc895e677ab6f8abab3b4e4e
+```
+
+![SHA-256 raw v2](screenshots/08-sha256-raw-v2-and-tsk.png)
+
+### Step 3 — Acquire E01 v2
+
+```bash
+ewfacquire \
+  -t ~/forensics/phase03/acquisition-v2/windows-target \
+  -f encase6 \
+  -C "BitTorrent DFIR Investigation" \
+  -D "Windows 10 DFIR Target VM - Consolidated Snapshots" \
+  -e "Paulo Vaz" \
+  -m fixed \
+  -M logical \
+  ~/forensics/phase03/windows-target.raw
+```
+
+**Acquisition parameters:**
+
+| Parameter | Value |
+|---|---|
+| Case number | BitTorrent DFIR Investigation |
+| Description | Windows 10 DFIR Target VM - Consolidated Snapshots |
+| Evidence number | 02 |
+| Examiner name | Paulo Vaz |
+| Notes | Second acquisition after VirtualBox snapshot consolidation - correct image |
+| EWF format | EnCase 6 (.E01) |
+| Compression | deflate / fast |
+| Segment size | 1.4 GiB |
+
+**Result:**
+```
+Acquiry completed at: Jun 25, 2026 12:32:34
+Written: 60 GiB (64424509628 bytes) in 5 minute(s) and 30 second(s) with 186 MiB/s
+MD5 hash calculated over data: 8e01029edeadbfffb36fe8516afb54df
+ewfacquire: SUCCESS
+```
+
+![ewfacquire v2 success](screenshots/09-ewfacquire-v2-success.png)
+
+### Step 4 — Verify E01 v2 integrity
+
+```bash
+ewfverify ~/forensics/phase03/acquisition-v2/windows-target.E01
+```
+
+```
+Verify completed at: Jun 25, 2026 12:40:58
+Read: 60 GiB (64424509440 bytes) in 2 minute(s) and 16 second(s) with 451 MiB/s
+MD5 hash stored in file:        8e01029edeadbfffb36fe8516afb54df
+MD5 hash calculated over data:  8e01029edeadbfffb36fe8516afb54df
+ewfverify: SUCCESS
+```
+
+![ewfverify v2 success](screenshots/10-ewfverify-v2-success.png)
 
 ---
 
 ## Hash Summary
 
-| Artifact | Algorithm | Hash |
-|---|---|---|
-| windows-target.raw | SHA-256 | `80f206ef92486901742c5c4f5a9a536d7e69b978a5ed64ba1dc0075c8f8fb08c` |
-| windows-target.E01 (stored) | MD5 | `41f3b630078af93662a45f37d3d6ee9b` |
-| windows-target.E01 (verified) | MD5 | `41f3b630078af93662a45f37d3d6ee9b` |
-
----
-
-## Screenshots
-
-### SHA-256 hash of raw image
-
-![SHA-256 raw image](screenshots/01-sha256-raw-image.png)
-
-### ewfacquire — parameters and start
-
-![ewfacquire parameters](screenshots/02-ewfacquire-parameters.png)
-
-### ewfacquire — completion and MD5
-
-![ewfacquire success](screenshots/03-ewfacquire-progress.png)
-
-### ewfverify — verification in progress
-
-![ewfverify progress](screenshots/04-ewfverify-progress.png)
-
-### ewfverify — SUCCESS and MD5 match
-
-![ewfverify success](screenshots/05-ewfverify-success.png)
+| Acquisition | Artifact | Algorithm | Hash | Status |
+|---|---|---|---|---|
+| v1 (incorrect) | windows-target.raw | SHA-256 | `80f206ef92486901742c5c4f5a9a536d7e69b978a5ed64ba1dc0075c8f8fb08c` | Base VDI only |
+| v1 (incorrect) | windows-target.E01 | MD5 | `41f3b630078af93662a45f37d3d6ee9b` | Verified ✅ but wrong source |
+| v2 (correct) | windows-target.raw | SHA-256 | `dff2ba411365bbf36cf15306d036f2d24a0fff9bdc895e677ab6f8abab3b4e4e` | Consolidated VDI |
+| v2 (correct) | acquisition-v2/windows-target.E01 | MD5 | `8e01029edeadbfffb36fe8516afb54df` | Verified ✅ correct source |
 
 ---
 
 ## Forensic Rationale
 
 **Why power off the VM before acquisition?**
-An active Windows system writes constantly — swap files, prefetch, registry, log files. Acquiring a live disk introduces write contamination that alters the evidence state. Powering off freezes the disk at the moment the suspect activity occurred.
+An active Windows system writes constantly. Powering off freezes the disk at the moment the suspect activity occurred, preventing write contamination.
 
 **Why convert VDI to raw first?**
-`ewfacquire` does not natively support VDI format. The raw conversion preserves all data bit-for-bit and provides a format that any forensic tool can read. The SHA-256 hash of the raw image documents the pre-conversion state.
+`ewfacquire` does not natively support VDI format. The SHA-256 hash of the raw image documents the pre-conversion state independently of the E01 acquisition tool.
 
-**Why two hash algorithms (SHA-256 and MD5)?**
-The SHA-256 was calculated independently on the raw source before acquisition. The MD5 is generated internally by `ewfacquire` during the E01 creation and verified by `ewfverify`. Using two independent hashes from two different tools over two different stages creates multiple verification layers — if any single hash is contested, the other still holds.
-
-**Why does the E01 come in four segments?**
-The 1.4GiB segment size is standard EnCase behavior and ensures compatibility with filesystems that have file size limits (e.g. FAT32 at 4GB). The segments are logically one image — `ewfverify` treats them as a single unit.
+**Why two hash algorithms?**
+SHA-256 calculated independently on the raw source before acquisition. MD5 generated internally by `ewfacquire` and verified by `ewfverify`. Two independent hashes from two different tools over two different stages create multiple verification layers.
 
 **Why not use a hardware write blocker?**
-In a real investigation, a hardware write blocker would be mandatory — it physically prevents any write commands from reaching the evidence disk during acquisition. In this lab environment, powering off the VM and accessing the VDI file read-only via shared folder serves the same purpose: the target disk received no writes during acquisition.
+In a real investigation, a hardware write blocker would be mandatory. In this lab environment, powering off the VM and accessing the VDI read-only via shared folder serves the same purpose.
 
 ---
 
 ## Evidence Files
 
-Large forensic image files exceed GitHub's 100MB limit and are excluded from this repository via `.gitignore`. Original hashes are documented above and in `../../evidences/hashes.md` for reproducibility.
+Large forensic image files exceed GitHub's 100MB limit and are excluded from this repository via `.gitignore`.
 
 ```
-~/forensics/phase03/windows-target.E01  (excluded — 1.5 GiB)
-~/forensics/phase03/windows-target.E02  (excluded — 1.5 GiB)
-~/forensics/phase03/windows-target.E03  (excluded — 1.5 GiB)
-~/forensics/phase03/windows-target.E04  (excluded — 535 MiB)
-~/forensics/phase03/windows-target.raw  (excluded — 60 GiB)
+~/forensics/phase03/windows-target.E01-E04        (v1 — incorrect, retained for documentation)
+~/forensics/phase03/acquisition-v2/windows-target.E01-E04  (v2 — correct, active evidence)
+~/forensics/phase03/windows-target.raw             (excluded — 60 GiB)
 ```
 
 ---
 
 ## Chain of Custody
-
-Full chain of custody documentation for this investigation is maintained at the repository root:
 
 → [Chain of Custody](../chain-of-custody.md)
 
@@ -205,6 +306,6 @@ Full chain of custody documentation for this investigation is maintained at the 
 
 ## Next Phase
 
-With a verified forensic image in hand, Phase 04 begins: mounting the E01 in Autopsy, running ingest modules, and locating BitTorrent artifacts on the Windows disk — torrent files, qBittorrent history, Registry entries, and NTFS timestamps.
+With a verified forensic image confirmed to contain all expected BitTorrent artifacts, Phase 04 begins: mounting the E01 in Autopsy, running ingest modules, and extracting evidence from disk, Registry, and filesystem artifacts.
 
 → [Phase 04 — Disk Analysis](../phase04-disk-analysis/README.md)
