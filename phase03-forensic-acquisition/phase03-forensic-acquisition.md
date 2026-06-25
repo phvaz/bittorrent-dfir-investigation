@@ -53,6 +53,8 @@ sha256sum ~/forensics/phase03/windows-target.raw
 80f206ef92486901742c5c4f5a9a536d7e69b978a5ed64ba1dc0075c8f8fb08c
 ```
 
+![SHA-256 raw v1](screenshots/01-sha256-raw-image.png)
+
 ### Step 3 — Acquire E01
 
 ```bash
@@ -75,6 +77,9 @@ MD5 hash calculated over data: 41f3b630078af93662a45f37d3d6ee9b
 ewfacquire: SUCCESS
 ```
 
+![ewfacquire parameters](screenshots/02-ewfacquire-parameters.png)
+![ewfacquire success](screenshots/03-ewfacquire-progress.png)
+
 ### Step 4 — Verify E01 integrity
 
 ```
@@ -84,11 +89,6 @@ MD5 hash calculated over data:  41f3b630078af93662a45f37d3d6ee9b
 ewfverify: SUCCESS
 ```
 
-### Screenshots — Acquisition 01
-
-![SHA-256 raw v1](screenshots/01-sha256-raw-image.png)
-![ewfacquire parameters](screenshots/02-ewfacquire-parameters.png)
-![ewfacquire success](screenshots/03-ewfacquire-progress.png)
 ![ewfverify progress](screenshots/04-ewfverify-progress.png)
 ![ewfverify success](screenshots/05-ewfverify-success.png)
 
@@ -189,7 +189,7 @@ qemu-img convert -f vdi -O raw \
 
 Physical size: ~26 GiB (reflects actual data after snapshot consolidation)
 
-![Raw v2 created](screenshots/07-raw-v2-created.png)
+![Raw v2 created](screenshots/08-sha256-raw-v2-and-tsk.png)
 
 ### Step 2 — SHA-256 hash of raw image v2
 
@@ -202,7 +202,7 @@ sha256sum ~/forensics/phase03/windows-target.raw
 dff2ba411365bbf36cf15306d036f2d24a0fff9bdc895e677ab6f8abab3b4e4e
 ```
 
-![SHA-256 raw v2](screenshots/08-sha256-raw-v2-and-tsk.png)
+![SHA-256 raw v2](screenshots/07-raw-v2-created.png)
 
 ### Step 3 — Acquire E01 v2
 
