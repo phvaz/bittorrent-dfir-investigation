@@ -189,7 +189,7 @@ qemu-img convert -f vdi -O raw \
 
 Physical size: ~26 GiB (reflects actual data after snapshot consolidation)
 
-![Raw v2 created](screenshots/08-sha256-raw-v2-and-tsk.png)
+![Raw v2 created](screenshots/07-raw-v2-created.png)
 
 ### Step 2 — SHA-256 hash of raw image v2
 
@@ -202,7 +202,7 @@ sha256sum ~/forensics/phase03/windows-target.raw
 dff2ba411365bbf36cf15306d036f2d24a0fff9bdc895e677ab6f8abab3b4e4e
 ```
 
-![SHA-256 raw v2](screenshots/07-raw-v2-created.png)
+![SHA-256 raw v2](screenshots/08-sha256-raw-v2-and-tsk.png)
 
 ### Step 3 — Acquire E01 v2
 
