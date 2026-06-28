@@ -126,6 +126,41 @@ TSK confirmed presence of expected artifacts in the consolidated raw image befor
 
 ---
 
+## Phase 05 — Network Analysis: Procedural Deviation
+
+### Deviation
+
+Network capture analysis (Phase 05) was performed on the **Windows 10 target VM** — the same machine that generated the evidence — rather than on the Kali Linux investigator workstation.
+
+### Standard Procedure (Not Followed)
+
+The correct forensic procedure for network capture analysis is:
+1. Copy `qbitorrent-debian.pcapng` from the evidence-generating machine to the investigator workstation
+2. Compute SHA-256 hash of the original file before transfer
+3. Transfer the file
+4. Compute SHA-256 hash of the copy after transfer
+5. Verify both hashes match — confirming no corruption or tampering during transfer
+6. Perform all analysis exclusively on the copy, on the investigator workstation
+7. Never interact with the evidence-generating machine again after the initial copy
+
+### Reasons for Deviation
+
+- Wireshark 4.6.6 was installed exclusively on the Windows 10 target VM. The Kali investigator VM was not configured with Wireshark for this phase.
+- The investigation runs in a controlled, single-investigator lab environment with no adversarial parties. No risk of evidence tampering between collection and analysis exists.
+- Transferring the pcap to Kali solely to maintain protocol would have introduced operational overhead without meaningful forensic benefit in this controlled context.
+
+### Risk Assessment
+
+- **`qbitorrent-debian.pcapng` is a secondary evidence artifact** — a network capture generated deliberately as part of the investigation scenario. It is not a forensic image of original evidence.
+- **The primary forensic image** (`windows-target.E01`, MD5: `8e01029edeadbfffb36fe8516afb54df`) resides exclusively on the Kali investigator VM and was handled with full forensic discipline throughout Phase 03. It was not touched during Phase 05 analysis.
+- **All Phase 05 findings are corroborated** by disk artifacts from Phase 04 (qbittorrent.log, NTFS timestamps, Web Downloads, qBittorrent.ini) through four independent convergence points: info-hash, temporal window, port declaration, and file size. The network evidence is confirmatory, not the sole evidentiary basis for any finding.
+
+### Acknowledgement
+
+**This deviation from standard forensic procedure is explicitly acknowledged and would not be acceptable in a production forensic or legal context.** It is documented here and in the Phase 05 README as a deliberate, reasoned exception specific to this controlled lab environment.
+
+---
+
 ## Notes
 
 This chain of custody document reflects a real-world investigative scenario where an initial acquisition error was identified, diagnosed, and corrected through rigorous analysis. The full troubleshooting process is preserved as evidence of investigative methodology.
@@ -136,3 +171,4 @@ In a real investigation, this document would additionally require:
 - Court-admissible write blocker documentation
 - Notarized or witnessed acquisition certification
 - Formal amendment documentation for the acquisition revision
+- Hash verification records for all evidence transfers between systems
