@@ -2,8 +2,7 @@
 
 This phase consolidates the findings from Phase 04 (disk analysis) and Phase 05 (network analysis) into a unified forensic timeline and a formal investigation report.
 
-The formal report is available as a PDF: `forensic-report-bittorrent-dfir.pdf`. This document is the Markdown equivalent for repository navigation.
-
+The formal report is available as a PDF: [`forensic-report-bittorrent-dfir.pdf`](../forensic-report-bittorrent-dfir.pdf). This document is the Markdown equivalent for repository navigation.
 ---
 
 ## Case Information
