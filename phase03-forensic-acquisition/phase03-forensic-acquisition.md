@@ -308,4 +308,4 @@ Large forensic image files exceed GitHub's 100MB limit and are excluded from thi
 
 With a verified forensic image confirmed to contain all expected BitTorrent artifacts, Phase 04 begins: mounting the E01 in Autopsy, running ingest modules, and extracting evidence from disk, Registry, and filesystem artifacts.
 
-→ [Phase 04 — Disk Analysis](../phase04-disk-analysis/README.md)
+→ [Phase 04 — Disk Analysis](../phase04-disk-analysis/phase04-disk-analysis.md)

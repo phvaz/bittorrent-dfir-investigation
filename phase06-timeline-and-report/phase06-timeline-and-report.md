@@ -243,4 +243,4 @@ I, **Paulo Vaz**, hereby declare that:
 
 ---
 
-*Generated June 28, 2026. Evidence image MD5: `8e01029edeadbfffb36fe8516afb54df`. Case reference: BTD-2026-001. The formal version of this report is available as `forensic-report-bittorrent-dfir.pdf`.*
+*Generated June 28, 2026. Evidence image MD5: `8e01029edeadbfffb36fe8516afb54df`. Case reference: BTD-2026-001. The formal version of this report is available as [`forensic-report-bittorrent-dfir.pdf`](../forensic-report-bittorrent-dfir.pdf).*

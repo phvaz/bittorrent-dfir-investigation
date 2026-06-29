@@ -153,4 +153,4 @@ Ping succeeded immediately after applying the static IP. The firewall was then r
 
 With the environment fully configured and connectivity verified, Phase 02 begins: launching Wireshark on the Windows target, initiating a torrent download of a legitimate Linux distribution, and capturing all network traffic for later analysis.
 
-→ [Phase 02 — Evidence Generation](../phase02-evidence-generation/README.md)
+→ [Phase 02 — Evidence Generation](../phase02-evidence-generation/phase02-evidence-generation.md)

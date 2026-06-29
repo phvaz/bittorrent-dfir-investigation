@@ -254,4 +254,4 @@ This graph provides independent graphical confirmation that a high-volume BitTor
 
 ---
 
-*Phase 05 — BitTorrent DFIR Investigation*
+→ [Phase 06 — Timeline and Report](../phase06-timeline-and-report/phase06-timeline-and-report.md)

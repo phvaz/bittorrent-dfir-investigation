@@ -126,4 +126,4 @@ The following artifacts were created on the Windows target disk during this phas
 
 With evidence generated and network capture saved, Phase 03 begins: forensic acquisition of the Windows target disk using `ewfacquire`, SHA-256 hash verification, and chain of custody documentation.
 
-→ [Phase 03 — Forensic Acquisition](../phase03-forensic-acquisition/README.md)
+→ [Phase 03 — Forensic Acquisition](../phase03-forensic-acquisition/phase03-forensic-acquisition.md)
