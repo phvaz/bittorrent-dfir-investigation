@@ -1,4 +1,4 @@
-Endereço A,Porta A,Endereço B,Porta B,Pacotes,Bytes,ID da Fluxo,Total de pacotes,Percentual filtrado,Packets A → B,Bytes A → B,Packets B → A,Bytes B → A,Início Relativo,Duração,Bits/s A → B,Bits/s B → A,Fluxos
+Address A,Port A,Address B,Port B,Packets,Bytes,Flow ID,Total Packets,Filtered %,Packets A→B,Bytes A→B,Packets B→A,Bytes B→A,Relative Start,Duration,Bits/s A→B,Bits/s B→A,Flows
 "10.0.2.15",49832,"31.200.249.244",31829,596,38216,89,1197,49.79,593,37924,3,292,117.4172647,11.33945270000001,26755,206,7
 "10.0.2.15",49948,"46.180.12.57",49666,1,122,201,5,20,1,122,0,0,136.7005555,1.0019015000000024,974,0,1
 "10.0.2.15",49860,"47.42.67.35",55222,1,122,115,10,10,1,122,0,0,120.8901065,2.1891557999999947,445,0,1
